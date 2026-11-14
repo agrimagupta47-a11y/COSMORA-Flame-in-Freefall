@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Terminal, Loader2, Flame, ShieldCheck, ArrowRight } from 'lucide-react';
+import {
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  Terminal,
+  Loader2,
+  Flame,
+  ShieldCheck,
+  ArrowRight,
+  RotateCcw,
+  Cpu
+} from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -16,19 +28,19 @@ const STARTER_PROMPTS = [
   'Compare BASS-II and Saffire-I for cabin materials'
 ];
 
+const INITIAL_MESSAGE: ChatMessage = {
+  id: 'welcome',
+  sender: 'assistant',
+  text: `**Flame in Freefall Copilot initialized.** 
+
+Active telemetry linked to 12 NASA Physical Sciences Informatics (PSI) investigations, historical Apollo & Mir flight fires, and terrestrial spinoffs.
+
+Inquire about microgravity combustion kinetics, partial-gravity lunar/martian flammability gaps, or select a mission dispatch prompt below.`,
+  timestamp: 'SYSTEM NOMINAL'
+};
+
 export default function AskPsiCopilot() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      sender: 'assistant',
-      text: `**Flame in Freefall Copilot initialized.** 
-
-Grounding active across 12 NASA Physical Sciences Informatics (PSI) investigations, historical Apollo & Mir flight incidents, and terrestrial spinoff technologies.
-
-Ask any aerospace combustion query, flammability rating question, or click one of the mission-readiness prompts below.`,
-      timestamp: 'SYSTEM NOMINAL'
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,6 +52,16 @@ Ask any aerospace combustion query, flammability rating question, or click one o
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        ...INITIAL_MESSAGE,
+        id: `welcome-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      }
+    ]);
+  };
 
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
@@ -86,8 +108,8 @@ Ask any aerospace combustion query, flammability rating question, or click one o
       const errorMessage: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: 'assistant',
-        text: `⚠️ **Telemetry Warning**: Connection to AI core interrupted. Using local flight rule cache: Please verify your \`GROQ_API_KEY\` in \`.env.local\` or review local dataset records in \`@/data/psi_dataset\`.`,
-        timestamp: 'ALERT'
+        text: `⚠️ **Flight Telemetry Notice**: Real-time AI stream fallback applied. Grounded dataset answers remain operational via local flight rule cache.`,
+        timestamp: 'ADVISORY'
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -96,38 +118,77 @@ Ask any aerospace combustion query, flammability rating question, or click one o
   };
 
   const formatMessageText = (content: string) => {
-    // Process markdown-like formatting: bold, lists, and highlight [PSI-xxx] tags
     const lines = content.split('\n');
 
     return lines.map((line, lIdx) => {
-      // Check if line is a bullet
-      const isBullet = line.trim().startsWith('- ') || line.trim().startsWith('* ');
-      const cleanLine = isBullet ? line.trim().substring(2) : line;
+      const trimmed = line.trim();
 
-      // Highlight [PSI-XX] and [node/XX] citations
-      const parts = cleanLine.split(/(\[PSI-\d+[A-Z0-9-]*\]|\[node\/\d+\]|\*\*.*?\*\*)/g);
+      // Heading 3
+      if (trimmed.startsWith('### ')) {
+        return (
+          <h4 key={lIdx} className="text-white font-bold text-sm mt-3 mb-1.5 flex items-center gap-1.5 border-b border-slate-800 pb-1">
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            {trimmed.substring(4)}
+          </h4>
+        );
+      }
+
+      // Heading 2
+      if (trimmed.startsWith('## ')) {
+        return (
+          <h3 key={lIdx} className="text-white font-bold text-base mt-3.5 mb-2 border-b border-slate-800 pb-1">
+            {trimmed.substring(3)}
+          </h3>
+        );
+      }
+
+      // Check if line is a bullet
+      const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ');
+      const cleanLine = isBullet ? trimmed.substring(2) : line;
+
+      // Highlight [PSI-XX], [node/XX], and [INC-XX] citations with cyan / amber pills
+      const parts = cleanLine.split(/(\[PSI-\d+[A-Z0-9-]*\]|\[node\/\d+\]|\[INC-[A-Z0-9-]+\]|\*\*.*?\*\*)/g);
 
       const renderedParts = parts.map((part, pIdx) => {
+        // [PSI-XXX] badges
         if (/^\[PSI-\d+[A-Z0-9-]*\]$/.test(part)) {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-700 mx-0.5"
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-cyan-950/90 text-cyan-300 border border-cyan-500/70 shadow-sm mx-1 hover:border-cyan-400 transition-colors cursor-default"
+              title="NASA Physical Sciences Informatics Citation"
             >
               {part}
             </span>
           );
         }
+
+        // [node/XXXX] badges
         if (/^\[node\/\d+\]$/.test(part)) {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700 mx-0.5"
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-500/70 shadow-sm mx-1 hover:border-amber-400 transition-colors cursor-default"
+              title="NASA Spinoff Technology Citation"
             >
               {part}
             </span>
           );
         }
+
+        // [INC-XXX] badges
+        if (/^\[INC-[A-Z0-9-]+\]$/.test(part)) {
+          return (
+            <span
+              key={pIdx}
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-red-950/90 text-red-300 border border-red-500/70 shadow-sm mx-1"
+            >
+              {part}
+            </span>
+          );
+        }
+
+        // Bold text
         if (part.startsWith('**') && part.endsWith('**')) {
           return (
             <strong key={pIdx} className="font-semibold text-white">
@@ -135,6 +196,7 @@ Ask any aerospace combustion query, flammability rating question, or click one o
             </strong>
           );
         }
+
         return part;
       });
 
@@ -147,7 +209,7 @@ Ask any aerospace combustion query, flammability rating question, or click one o
       }
 
       return (
-        <p key={lIdx} className={`leading-relaxed text-slate-300 ${line.trim() === '' ? 'h-2' : 'my-1'}`}>
+        <p key={lIdx} className={`leading-relaxed text-slate-300 ${trimmed === '' ? 'h-2' : 'my-1'}`}>
           {renderedParts}
         </p>
       );
@@ -166,22 +228,33 @@ Ask any aerospace combustion query, flammability rating question, or click one o
           <div className="flex items-center gap-2">
             <Flame className="w-4 h-4 text-orange-400" />
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-              NASA PSI COPILOT // MISSION CONTROL
+              NASA PSI COPILOT // FLIGHT DECK
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-          <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-          <span>LLAMA-3.3-70B • GROQ-POWERED</span>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+            <span>LLAMA-3.3-70B • GROQ ACCELERATED</span>
+          </div>
+
+          <button
+            onClick={handleClearChat}
+            className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition-colors"
+            title="Reset flight consultation session"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Clear Chat</span>
+          </button>
         </div>
       </div>
 
       {/* Starter Prompts */}
-      <div className="px-4 pt-3 pb-2 bg-slate-900/40 border-b border-slate-800/60">
+      <div className="px-4 pt-3 pb-2.5 bg-slate-900/40 border-b border-slate-800/60">
         <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-2 font-mono">
           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>FLIGHT DISPATCH STARTER QUERIES:</span>
+          <span>FLIGHT READINESS ONE-CLICK PROMPTS:</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {STARTER_PROMPTS.map((prompt, idx) => (
@@ -199,14 +272,14 @@ Ask any aerospace combustion query, flammability rating question, or click one o
       </div>
 
       {/* Chat Messages Feed */}
-      <div className="p-4 space-y-4 max-h-[460px] min-h-[300px] overflow-y-auto font-sans text-xs sm:text-sm">
+      <div className="p-4 space-y-4 max-h-[460px] min-h-[320px] overflow-y-auto font-sans text-xs sm:text-sm">
         {messages.map((msg) => (
           <div
             key={msg.id}
             className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             {msg.sender === 'assistant' && (
-              <div className="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center flex-shrink-0 text-cyan-400 mt-1">
+              <div className="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center flex-shrink-0 text-cyan-400 mt-1 shadow-md">
                 <Bot className="w-4 h-4" />
               </div>
             )}
@@ -215,32 +288,38 @@ Ask any aerospace combustion query, flammability rating question, or click one o
               className={`max-w-[85%] rounded-xl p-3.5 border ${
                 msg.sender === 'user'
                   ? 'bg-cyan-950/70 border-cyan-700/60 text-slate-100 rounded-tr-none'
-                  : 'bg-slate-900/90 border-slate-800 text-slate-200 rounded-tl-none shadow-md'
+                  : 'bg-slate-900/95 border-slate-800 text-slate-200 rounded-tl-none shadow-lg'
               }`}
             >
-              <div className="flex items-center justify-between gap-4 mb-1 text-[10px] font-mono text-slate-400 border-b border-slate-800/50 pb-1">
-                <span>{msg.sender === 'user' ? 'PAYLOAD SPECIALIST' : 'PSI ADVISORY CORE'}</span>
+              <div className="flex items-center justify-between gap-4 mb-1.5 text-[10px] font-mono text-slate-400 border-b border-slate-800/60 pb-1">
+                <span>{msg.sender === 'user' ? 'FLIGHT SCIENTIST' : 'PSI ADVISORY CORE'}</span>
                 <span>{msg.timestamp}</span>
               </div>
               <div className="space-y-1">{formatMessageText(msg.text)}</div>
             </div>
 
             {msg.sender === 'user' && (
-              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-slate-300 mt-1">
+              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-slate-300 mt-1 shadow-md">
                 <User className="w-4 h-4" />
               </div>
             )}
           </div>
         ))}
 
+        {/* Pulse & Skeleton Loading State */}
         {isLoading && (
-          <div className="flex gap-3 justify-start">
+          <div className="flex gap-3 justify-start animate-pulse">
             <div className="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center flex-shrink-0 text-cyan-400">
               <Bot className="w-4 h-4" />
             </div>
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl rounded-tl-none p-3.5 flex items-center gap-2 text-cyan-400 text-xs font-mono">
-              <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-              <span>Analyzing PSI database & querying microgravity flight rules...</span>
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl rounded-tl-none p-4 max-w-[80%] w-full space-y-2.5">
+              <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono mb-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                <span>Interrogating NASA Physical Sciences Informatics (PSI) repository...</span>
+              </div>
+              <div className="h-3 bg-slate-800 rounded w-3/4 animate-pulse"></div>
+              <div className="h-3 bg-slate-800/70 rounded w-5/6 animate-pulse"></div>
+              <div className="h-3 bg-slate-800/50 rounded w-1/2 animate-pulse"></div>
             </div>
           </div>
         )}
@@ -262,7 +341,7 @@ Ask any aerospace combustion query, flammability rating question, or click one o
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about microgravity flammability, cool flames, lunar habitats..."
+            placeholder="Ask about microgravity combustion, cool flames, lunar habitats..."
             disabled={isLoading}
             className="w-full bg-slate-950 text-slate-200 placeholder-slate-500 text-xs sm:text-sm pl-9 pr-4 py-2.5 rounded-xl border border-slate-800 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all font-sans"
           />
