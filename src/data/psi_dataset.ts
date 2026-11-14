@@ -397,3 +397,8 @@ export function getRankedInvestigations(preset: 'lunar' | 'iss' | 'spacesuit' | 
 
   return scored.sort((a, b) => b.score - a.score).map((item) => item.inv);
 }
+
+export function getInvestigationById(id: string): Investigation | undefined {
+  const cleanId = id.replace(/[\[\]]/g, '').trim().toUpperCase();
+  return investigations.find((inv) => inv.id.toUpperCase() === cleanId);
+}

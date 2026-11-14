@@ -12,14 +12,21 @@ import {
   ShieldCheck,
   ArrowRight,
   RotateCcw,
-  Cpu
+  Cpu,
+  Copy,
+  Check,
+  GraduationCap,
+  Wrench,
+  ExternalLink
 } from 'lucide-react';
+import { getInvestigationById } from '@/data/psi_dataset';
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
   text: string;
   timestamp: string;
+  roleHint?: 'engineer' | 'student';
 }
 
 const STARTER_PROMPTS = [
@@ -39,10 +46,13 @@ Inquire about microgravity combustion kinetics, partial-gravity lunar/martian fl
   timestamp: 'SYSTEM NOMINAL'
 };
 
-export default function AskPsiCopilot() {
+export function AskPsiCopilot() {
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [role, setRole] = useState<'engineer' | 'student'>('engineer');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -51,6 +61,8 @@ export default function AskPsiCopilot() {
 
   useEffect(() => {
     scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 80);
+    return () => clearTimeout(timer);
   }, [messages, isLoading]);
 
   const handleClearChat = () => {
@@ -63,6 +75,12 @@ export default function AskPsiCopilot() {
     ]);
   };
 
+  const handleCopyText = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
     if (!query || isLoading) return;
@@ -71,7 +89,8 @@ export default function AskPsiCopilot() {
       id: `user-${Date.now()}`,
       sender: 'user',
       text: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      roleHint: role
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -86,7 +105,8 @@ export default function AskPsiCopilot() {
         },
         body: JSON.stringify({
           mode: 'chat',
-          message: query
+          message: query,
+          role
         })
       });
 
@@ -99,7 +119,8 @@ export default function AskPsiCopilot() {
         id: `assistant-${Date.now()}`,
         sender: 'assistant',
         text: data.reply || 'No telemetry received from AI core.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        roleHint: role
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -115,6 +136,14 @@ export default function AskPsiCopilot() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Extract cited PSI IDs from message text
+  const extractCitedPsiIds = (text: string): string[] => {
+    const matches = text.match(/\[PSI-\d+[A-Z0-9-]*\]/g);
+    if (!matches) return [];
+    const unique = Array.from(new Set(matches.map((m) => m.replace(/[\[\]]/g, ''))));
+    return unique;
   };
 
   const formatMessageText = (content: string) => {
@@ -142,20 +171,20 @@ export default function AskPsiCopilot() {
         );
       }
 
-      // Check if line is a bullet
+      // Bullet check
       const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ');
       const cleanLine = isBullet ? trimmed.substring(2) : line;
 
-      // Highlight [PSI-XX], [node/XX], and [INC-XX] citations with cyan / amber pills
+      // Highlight [PSI-XX], [node/XX], and [INC-XX] citations
       const parts = cleanLine.split(/(\[PSI-\d+[A-Z0-9-]*\]|\[node\/\d+\]|\[INC-[A-Z0-9-]+\]|\*\*.*?\*\*)/g);
 
       const renderedParts = parts.map((part, pIdx) => {
-        // [PSI-XXX] badges
+        // [PSI-XXX] badges: styled as glowing cyan pills
         if (/^\[PSI-\d+[A-Z0-9-]*\]$/.test(part)) {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-cyan-950/90 text-cyan-300 border border-cyan-500/70 shadow-sm mx-1 hover:border-cyan-400 transition-colors cursor-default"
+              className="inline-flex items-center bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.5 rounded font-mono text-xs shadow-[0_0_8px_rgba(6,182,212,0.2)] mx-0.5"
               title="NASA Physical Sciences Informatics Citation"
             >
               {part}
@@ -168,7 +197,7 @@ export default function AskPsiCopilot() {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-500/70 shadow-sm mx-1 hover:border-amber-400 transition-colors cursor-default"
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm mx-0.5 hover:border-amber-400 transition-colors cursor-default"
               title="NASA Spinoff Technology Citation"
             >
               {part}
@@ -181,7 +210,7 @@ export default function AskPsiCopilot() {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-red-950/90 text-red-300 border border-red-500/70 shadow-sm mx-1"
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/40 shadow-sm mx-0.5"
             >
               {part}
             </span>
@@ -219,7 +248,7 @@ export default function AskPsiCopilot() {
   return (
     <div className="w-full bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-md">
       {/* Mission Control Top Bar */}
-      <div className="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+      <div className="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -233,19 +262,43 @@ export default function AskPsiCopilot() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-slate-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-            <span>LLAMA-3.3-70B • GROQ ACCELERATED</span>
+        {/* Persona Toggle & Clear Chat */}
+        <div className="flex items-center gap-2">
+          {/* Persona / Audience Selector */}
+          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[11px] font-mono">
+            <button
+              onClick={() => setRole('engineer')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+                role === 'engineer'
+                  ? 'bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Technical specifications, stoichiometry, sensor telemetry"
+            >
+              <Wrench className="w-3 h-3" />
+              <span>Engineer</span>
+            </button>
+            <button
+              onClick={() => setRole('student')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+                role === 'student'
+                  ? 'bg-purple-950 text-purple-300 border border-purple-700 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Intuitive physical analogies, ScienceCast insights, clear concepts"
+            >
+              <GraduationCap className="w-3 h-3" />
+              <span>Student</span>
+            </button>
           </div>
 
           <button
             onClick={handleClearChat}
-            className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition-colors"
+            className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition-colors"
             title="Reset flight consultation session"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Clear Chat</span>
+            <span className="hidden sm:inline">Reset</span>
           </button>
         </div>
       </div>
@@ -271,40 +324,113 @@ export default function AskPsiCopilot() {
         </div>
       </div>
 
-      {/* Chat Messages Feed */}
-      <div className="p-4 space-y-4 max-h-[460px] min-h-[320px] overflow-y-auto font-sans text-xs sm:text-sm">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            {msg.sender === 'assistant' && (
-              <div className="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center flex-shrink-0 text-cyan-400 mt-1 shadow-md">
-                <Bot className="w-4 h-4" />
-              </div>
-            )}
+      {/* Chat Messages Feed with clean fixed scroll height */}
+      <div className="p-4 space-y-4 max-h-[420px] overflow-y-auto font-sans text-xs sm:text-sm">
+        {messages.map((msg) => {
+          const citedIds = msg.sender === 'assistant' ? extractCitedPsiIds(msg.text) : [];
 
+          return (
             <div
-              className={`max-w-[85%] rounded-xl p-3.5 border ${
-                msg.sender === 'user'
-                  ? 'bg-cyan-950/70 border-cyan-700/60 text-slate-100 rounded-tr-none'
-                  : 'bg-slate-900/95 border-slate-800 text-slate-200 rounded-tl-none shadow-lg'
-              }`}
+              key={msg.id}
+              className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="flex items-center justify-between gap-4 mb-1.5 text-[10px] font-mono text-slate-400 border-b border-slate-800/60 pb-1">
-                <span>{msg.sender === 'user' ? 'FLIGHT SCIENTIST' : 'PSI ADVISORY CORE'}</span>
-                <span>{msg.timestamp}</span>
-              </div>
-              <div className="space-y-1">{formatMessageText(msg.text)}</div>
-            </div>
+              {msg.sender === 'assistant' && (
+                <div className="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center flex-shrink-0 text-cyan-400 mt-1 shadow-md">
+                  <Bot className="w-4 h-4" />
+                </div>
+              )}
 
-            {msg.sender === 'user' && (
-              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-slate-300 mt-1 shadow-md">
-                <User className="w-4 h-4" />
+              <div
+                className={`max-w-[88%] rounded-xl p-3.5 border ${
+                  msg.sender === 'user'
+                    ? 'bg-cyan-950/70 border-cyan-700/60 text-slate-100 rounded-tr-none'
+                    : 'bg-slate-900/95 border-slate-800 text-slate-200 rounded-tl-none shadow-lg'
+                }`}
+              >
+                {/* Header of message bubble */}
+                <div className="flex items-center justify-between gap-4 mb-2 text-[10px] font-mono text-slate-400 border-b border-slate-800/60 pb-1">
+                  <div className="flex items-center gap-2">
+                    <span>{msg.sender === 'user' ? 'FLIGHT SCIENTIST' : 'PSI ADVISORY CORE'}</span>
+                    {msg.roleHint && (
+                      <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 text-[9px] uppercase">
+                        {msg.roleHint}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span>{msg.timestamp}</span>
+                    {msg.sender === 'assistant' && msg.id !== 'welcome' && (
+                      <button
+                        onClick={() => handleCopyText(msg.id, msg.text)}
+                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-cyan-300 transition-colors ml-1"
+                        title="Copy Briefing text to clipboard"
+                      >
+                        {copiedId === msg.id ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            <span className="text-emerald-400">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>Copy Brief</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Body of message */}
+                <div className="space-y-1">{formatMessageText(msg.text)}</div>
+
+                {/* Clickable Source Chips at bottom of AI replies */}
+                {citedIds.length > 0 && (
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80">
+                    <div className="text-[10px] font-mono text-slate-400 mb-1.5 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <span>CITED PSI INVESTIGATIONS (HOVER FOR HARDWARE):</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {citedIds.map((id) => {
+                        const inv = getInvestigationById(id);
+                        const label = inv ? `[${inv.id}] ${inv.acronym}` : `[${id}]`;
+                        const tooltip = inv
+                          ? `${inv.title}\nFacility: ${inv.hardware}\nFuel: ${inv.fuelType} (${inv.sampleDetails})\nSensors: ${inv.sensors.slice(0, 2).join(', ')}`
+                          : `NASA PSI Experiment ${id}`;
+
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => handleSendMessage(`Provide a deep dive into [${id}] ${inv?.acronym || ''} findings, hardware, and safety limits.`)}
+                            title={tooltip}
+                            className="inline-flex items-center gap-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 px-2 py-0.5 rounded font-mono text-xs shadow-[0_0_8px_rgba(6,182,212,0.15)] transition-all"
+                          >
+                            <span>{label}</span>
+                            {inv && (
+                              <span className="text-[9px] text-cyan-300/80 font-normal bg-cyan-950/80 px-1 rounded border border-cyan-700/50">
+                                {inv.hardware.split(' ')[0]}
+                              </span>
+                            )}
+                            <ExternalLink className="w-2.5 h-2.5 text-cyan-400" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+
+              {msg.sender === 'user' && (
+                <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-slate-300 mt-1 shadow-md">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Pulse & Skeleton Loading State */}
         {isLoading && (
@@ -327,7 +453,7 @@ export default function AskPsiCopilot() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Form */}
+      {/* Input Form with Enter-to-send support */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -341,7 +467,17 @@ export default function AskPsiCopilot() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about microgravity combustion, cool flames, lunar habitats..."
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            placeholder={
+              role === 'engineer'
+                ? 'Query combustion stoichiometry, cool flame kinetics, lunar habitat ratings...'
+                : 'Ask how flames behave in space, why candles burn spherical, or about NASA experiments...'
+            }
             disabled={isLoading}
             className="w-full bg-slate-950 text-slate-200 placeholder-slate-500 text-xs sm:text-sm pl-9 pr-4 py-2.5 rounded-xl border border-slate-800 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 transition-all font-sans"
           />
@@ -359,3 +495,5 @@ export default function AskPsiCopilot() {
     </div>
   );
 }
+
+export default AskPsiCopilot;
