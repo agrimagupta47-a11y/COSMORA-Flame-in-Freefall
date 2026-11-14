@@ -3,9 +3,21 @@ import Groq from 'groq-sdk';
 import { investigations, incidents, spinoffs } from '@/data/psi_dataset';
 
 interface RequestBody {
-  mode?: 'chat' | 'compare';
+  mode?: 'chat' | 'compare' | 'briefing';
   message?: string;
   ids?: [string, string];
+  oxygenPercent?: number;
+  pressurePsi?: number;
+  habitatName?: string;
+  role?: 'engineer' | 'student';
+}
+
+export interface BriefingResult {
+  riskLevel: 'CRITICAL' | 'ELEVATED' | 'NOMINAL';
+  ignitionRisk: string;
+  suppressionStrategy: string;
+  relevantPsiIds: string[];
+  partialGravityCaveat: string;
 }
 
 const datasetContext = `
@@ -56,7 +68,7 @@ ${spinoffs
 CRITICAL AEROSPACE FIRE SAFETY KNOWLEDGE & GAPS:
 - Normal Earth gravity (1-g) relies heavily on natural buoyancy-driven convective flow.
 - Microgravity (0-g, tested on ISS and Cygnus) eliminates buoyant upward draft; flames become spherical and can starve of oxygen or linger silently as low-temperature "cool flames" (e.g. [PSI-159], [PSI-142]).
-- PARTIAL-GRAVITY GAPS: The partial-gravity regimes (Moon: 0.166-g; Mars: 0.38-g) represent an urgent experimental frontier. Currently, flight safety limits are theoretically bounded between 0-g and 1-g results, creating substantial uncertainty for habitat ventilation and material ratings. NASA and international partners are targeting these gaps via the upcoming LUCI (Lunar Combustion Investigation) and FM2 (Flow Boiling and Condensation / Fire Safety in Reduced Gravity) exploration payloads.
+- PARTIAL-GRAVITY GAPS: The partial-gravity regimes (Moon: 0.166-g; Mars: 0.38-g) represent an urgent experimental frontier. Flight safety limits are theoretically bounded between 0-g and 1-g results, creating substantial uncertainty for habitat ventilation and material ratings. NASA and international partners are targeting these gaps via the upcoming LUCI (Lunar Combustion Investigation) and FM2 (Flow Boiling and Condensation / Fire Safety in Reduced Gravity) exploration payloads.
 `;
 
 function getFallbackComparison(id1: string, id2: string) {
@@ -79,9 +91,91 @@ function getFallbackComparison(id1: string, id2: string) {
   };
 }
 
-function getFallbackChat(query: string): string {
+function getFallbackBriefing(o2: number, psi: number, name: string): BriefingResult {
+  const isHighO2 = o2 >= 28;
+  const isPureO2 = o2 >= 90;
+  const isHighPressure = psi >= 14.0;
+  const isHypobaric = psi <= 9.0;
+
+  let riskLevel: 'CRITICAL' | 'ELEVATED' | 'NOMINAL' = 'NOMINAL';
+  if (isPureO2 || (o2 >= 40 && isHighPressure) || (o2 >= 30 && psi >= 15.0)) {
+    riskLevel = 'CRITICAL';
+  } else if (isHighO2 || isHypobaric) {
+    riskLevel = 'ELEVATED';
+  }
+
+  let ignitionRisk = '';
+  let suppressionStrategy = '';
+  const relevantPsiIds: string[] = [];
+
+  if (riskLevel === 'CRITICAL') {
+    ignitionRisk = `Extremely severe flashover hazard at ${o2}% O2 and ${psi} PSI (comparable to Apollo 1 conditions). Solid polymers, wire insulation, and textiles experience near-instantaneous surface flame propagation with drastically depressed minimum ignition energies. Secondary low-temperature cool flames ([PSI-159]) can sustain smoldering combustion even after apparent extinction.`;
+    suppressionStrategy = `Automated rapid cabin depressurization ([PSI-100] SAFFIRE-III) to strip oxygen below extinction limits, paired with high-volume gaseous CO2 / He total flooding ([PSI-69] FLEX). Optical detectors must be supplemented by aspirating sub-micron particle analyzers ([PSI-101] SAME-R, [node/9407]) to catch pre-combustion off-gassing before runaway.`;
+    relevantPsiIds.push('PSI-159', 'PSI-98', 'PSI-69', 'PSI-100', 'PSI-101');
+  } else if (riskLevel === 'ELEVATED') {
+    ignitionRisk = `Elevated flammability profile at ${o2}% O2 and ${psi} PSI (typical Exploration Atmosphere / Lunar Habitat target). ACME CFI-G ([PSI-159]) proved that atmospheres >=30% O2 drastically stabilize low-temperature cool diffusion flames (400–600°C) with no visible soot. Solid materials ([PSI-25] BASS-II, [PSI-99] SAFFIRE-II) burn under low forced flows (2–15 cm/s) where terrestrial buoyant cooling does not exist.`;
+    suppressionStrategy = `Zoned ventilation isolation to eliminate forced convective feeding ([PSI-25]), followed by targeted nitrogen diluent injection or portable clean-agent extinguishers ([PSI-26]). Traditional optical obscuration alarms must be augmented with high-sensitivity multi-gas CO/CO2 analyzers ([PSI-101] SAME-R).`;
+    relevantPsiIds.push('PSI-159', 'PSI-25', 'PSI-99', 'PSI-69', 'PSI-101');
+  } else {
+    ignitionRisk = `Nominal baseline conditions at ${o2}% O2 and ${psi} PSI (standard shirtsleeve ISS / terrestrial envelope). Flammability limits conform to NASA-STD-6001 Test 1 baselines. Quiescent microgravity allows radiant heat loss to assist extinction ([PSI-26]), though low-velocity air recirculation ducts can still sustain localized burning.`;
+    suppressionStrategy = `Module ventilation shutdown to eliminate air currents ([PSI-25]), standard water mist or fine gaseous suppressant discharge ([PSI-69]), and aspirating smoke detection calibration ([PSI-101] SAME-R).`;
+    relevantPsiIds.push('PSI-25', 'PSI-26', 'PSI-101', 'PSI-60');
+  }
+
+  const partialGravityCaveat = `Current telemetry represents microgravity (0-g, ISS/Cygnus) and Earth (1-g) data. In lunar 1/6-g (${name}), weak buoyancy sustains continuous oxygen flow without providing strong convective cooling, representing a critical safety gap pending the upcoming NASA LUCI (Lunar Combustion Investigation) and FM2 missions.`;
+
+  return {
+    riskLevel,
+    ignitionRisk,
+    suppressionStrategy,
+    relevantPsiIds,
+    partialGravityCaveat
+  };
+}
+
+function getFallbackChat(query: string, role: 'engineer' | 'student' = 'engineer'): string {
   const q = query.toLowerCase();
 
+  if (role === 'student') {
+    if (q.includes('30%') || q.includes('lunar') || q.includes('moon')) {
+      return `### How Fire Behaves on a Moon Base (30% Oxygen Atmosphere)
+
+Imagine lighting a campfire on Earth: hot smoke rises, cool air rushes in, and the flame dances into a familiar tall teardrop shape. On the Moon or in space, gravity changes the entire game!
+
+1. **Why Moon Bases Use 30% Oxygen**:
+   - Astronauts want to walk on the Moon without waiting hours in an airlock to get rid of nitrogen from their blood (decompression sickness / "the bends").
+   - So NASA plans an **Exploration Atmosphere**: lower pressure (8.2 PSI) but higher oxygen (30%–34%).
+   - But higher oxygen makes things burn **much faster and easier**!
+
+2. **The Invisible "Cool Flame" Danger ([PSI-159])**:
+   - In NASA's **[PSI-159]** (ACME CFI-G) experiment, scientists discovered that when oxygen is above 30%, gases can burn as invisible "cool flames" at 400–600°C without producing smoke or visible light.
+   - You might have a fire right in front of you, and regular smoke alarms won't see it!
+
+3. **Why Microgravity is Different ([PSI-25])**:
+   - In freefall or low gravity, flames turn into soft, round blue spheres because oxygen diffuses equally from all directions.
+   - Experiments like **[PSI-25]** (BASS-II) showed that even a gentle fan breeze can keep a fire going when it would have died on Earth.
+
+4. **The Big Mystery: 1/6th Gravity**:
+   - We know how fire works on Earth (1-g) and in freefall (0-g). But on the Moon (1/6-g), fire is still an active mystery! Upcoming missions like NASA's **LUCI** and **FM2** will test real fires on the Moon to keep future Artemis astronauts safe.`;
+    }
+
+    if (q.includes('cool flame') || q.includes('smoke detection')) {
+      return `### Cool Flames & Space Smoke Alarms Explained Simply
+
+1. **What is a "Cool Flame"?**:
+   - On Earth, a candle flame burns at around 1400°C, producing bright yellow light and black soot particles.
+   - In microgravity experiments like **[PSI-159]** (ACME CFI-G) and **[PSI-142]** (CFI / FLEX-2), flames can burn at just 400°C–600°C. They produce no black soot and give off barely any light.
+
+2. **Why Smoke Alarms Fail in Space**:
+   - Regular household smoke detectors look for floating soot particles or light blockage. Cool flames don't produce soot, so standard alarms stay completely silent!
+   - Plus, as NASA's **[PSI-101]** (SAME-R) found, low-gravity smoke particles clump into long fluffy chains that float differently without gravity's pull.
+
+3. **NASA's Solution ([node/9407])**:
+   - NASA invented ultra-sensitive "aspirating detectors" that sniff out sub-micron chemical particles and invisible gases (like CO and formaldehyde) before flames even erupt. This technology is now used on Earth in hospitals and data centers!`;
+    }
+  }
+
+  // Engineering role default responses
   if (q.includes('30%') || q.includes('lunar') || q.includes('moon') || q.includes('artemis')) {
     return `### Lunar Base Flammability Analysis (30% O2 / 8.2–10.2 PSI)
 
@@ -137,24 +231,6 @@ Comparing small-scale glovebox research with vehicle-scale fire safety demonstra
   - Furthermore, all current data is bounded between 0-g and 1-g. The upcoming **LUCI** and **FM2** missions will measure partial-gravity spread rates to establish certified Moon and Mars habitat standards.`;
   }
 
-  if (q.includes('apollo') || q.includes('mir') || q.includes('incident') || q.includes('history')) {
-    return `### Historical Spaceflight Fire Lessons Grounded in PSI
-
-Historical flight fires have driven NASA's current fire safety philosophy across the 4 pillars:
-
-1. **Apollo 1 (1967)**:
-   - 100% pure O2 at 16.7 PSI during pre-flight pad test. An electrical arc ignited Velcro and nylon netting, causing flashover in under 15 seconds.
-   - *Lesson*: Established NASA-STD-6001 non-metallic material screening and banned high-pressure pure O2 cabin testing.
-
-2. **Apollo 13 (1970)**:
-   - Pure cryogenic O2 tank short circuit.
-   - *Lesson*: Separation of high-energy electrical lines from oxygen systems and complete redesign of cryogenic pressure vessels (which spun off **[node/9582]** lightweight composite SCBA tanks).
-
-3. **Mir Space Station (1997)**:
-   - Solid fuel perchlorate oxygen generator canister fire producing open torch flames and dense smoke in microgravity.
-   - *Lesson*: Microgravity extinguishment requires rapid module isolation and clean agent suppression without recoil (**[PSI-26]**, **[PSI-69]**).`;
-  }
-
   return `### NASA Physical Sciences Informatics (PSI) Fire Safety Architecture
 
 NASA's spacecraft combustion safety framework is structured across four interlinked pillars:
@@ -170,13 +246,73 @@ NASA's spacecraft combustion safety framework is structured across four interlin
 export async function POST(req: NextRequest) {
   try {
     const body: RequestBody = await req.json().catch(() => ({}));
-    const { mode = 'chat', message, ids } = body;
+    const { mode = 'chat', message, ids, oxygenPercent, pressurePsi, habitatName, role = 'engineer' } = body;
 
     const apiKey = process.env.GROQ_API_KEY;
     const hasValidKey =
       typeof apiKey === 'string' &&
       apiKey.trim().length > 10 &&
       apiKey !== 'your_groq_api_key_here';
+
+    // Handle 'briefing' mode
+    if (mode === 'briefing') {
+      const o2 = typeof oxygenPercent === 'number' ? oxygenPercent : 32.0;
+      const psi = typeof pressurePsi === 'number' ? pressurePsi : 8.2;
+      const hab = habitatName || 'Exploration Habitat';
+
+      if (!hasValidKey) {
+        return NextResponse.json(getFallbackBriefing(o2, psi, hab));
+      }
+
+      try {
+        const groq = new Groq({ apiKey });
+        const briefingPrompt = `Evaluate the aerospace fire safety profile for this proposed habitat atmosphere:
+Habitat / Environment: ${hab}
+Oxygen Concentration: ${o2}%
+Total Ambient Pressure: ${psi} PSI
+
+KNOWLEDGE CONTEXT:
+${datasetContext}
+
+Respond ONLY with a JSON object strictly matching this schema:
+{
+  "riskLevel": "CRITICAL" | "ELEVATED" | "NOMINAL",
+  "ignitionRisk": "Rigorous analysis of flammability, ignition delay, and cool flames referencing PSI-159 (>=30% O2 cool flame stability) and PSI-25/PSI-98 (materials in forced airflow)",
+  "suppressionStrategy": "Actionable suppression and detection protocol citing PSI-69 (CO2/He droplet extinction), PSI-100 (depressurization), and PSI-101 (smoke particle sizing)",
+  "relevantPsiIds": ["PSI-159", "PSI-25", "PSI-69", "PSI-101"],
+  "partialGravityCaveat": "Explicit note regarding the partial-gravity gap (bounded between 0g and 1g, pending LUCI and FM2 lunar missions)"
+}`;
+
+        const chatCompletion = await groq.chat.completions.create({
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are an expert NASA aerospace fire safety specialist evaluating life-support combustion risks. Respond strictly with JSON.'
+            },
+            {
+              role: 'user',
+              content: briefingPrompt
+            }
+          ],
+          model: 'llama-3.3-70b-versatile',
+          response_format: { type: 'json_object' },
+          temperature: 0.2
+        });
+
+        const raw = chatCompletion.choices[0]?.message?.content;
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.riskLevel && parsed.ignitionRisk && parsed.suppressionStrategy && Array.isArray(parsed.relevantPsiIds)) {
+            return NextResponse.json(parsed);
+          }
+        }
+      } catch (err) {
+        console.warn('Groq briefing call failed; applying deterministic fallback:', err);
+      }
+
+      return NextResponse.json(getFallbackBriefing(o2, psi, hab));
+    }
 
     // Handle 'compare' mode
     if (mode === 'compare') {
@@ -239,13 +375,21 @@ Return a valid JSON object strictly matching this schema:
     const userQuery = message && message.trim().length > 0 ? message.trim() : 'Overview of NASA PSI investigations';
 
     if (!hasValidKey) {
-      return NextResponse.json({ reply: getFallbackChat(userQuery) });
+      return NextResponse.json({ reply: getFallbackChat(userQuery, role) });
     }
 
     try {
       const groq = new Groq({ apiKey });
+      const personaGuideline =
+        role === 'student'
+          ? `ADAPT TONE FOR STUDENTS & GENERAL RESEARCHERS: Use engaging physical analogies (e.g. comparing candle teardrop flames on Earth with spherical blue microgravity flames, Dr. Dennis Stocker NASA ScienceCast insights), explain why buoyant updrafts vanish in orbit, and explain physical concepts clearly without overly dense jargon while still citing PSI IDs.`
+          : `ADAPT TONE FOR AEROSPACE ENGINEERS & NASA JUDGES: Use rigorous aerospace terminology: stoichiometry, Damköhler number transport, non-metallic material ratings (NASA-STD-6001), exact sensor suites, and life-support design margins.`;
+
       const systemPrompt = `You are the NASA Space Apps 2026 "Flame in Freefall" Aerospace Fire Safety & PSI Copilot.
 You answer user questions by grounding your reasoning in the NASA Physical Sciences Informatics (PSI) experiments, historical spacecraft incidents, and terrestrial spinoffs.
+
+AUDIENCE ROLE: ${role.toUpperCase()}
+${personaGuideline}
 
 KNOWLEDGE BASE:
 ${datasetContext}
@@ -280,7 +424,7 @@ STRICT INSTRUCTIONS:
       console.warn('Groq chat call failed or rate-limited; applying deterministic fallback:', err);
     }
 
-    return NextResponse.json({ reply: getFallbackChat(userQuery) });
+    return NextResponse.json({ reply: getFallbackChat(userQuery, role) });
   } catch (error) {
     console.error('Fatal API /api/ai handler error:', error);
     return NextResponse.json(
