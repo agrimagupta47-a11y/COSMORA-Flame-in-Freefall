@@ -69,7 +69,7 @@ export default function Home() {
                 </span>
               </div>
               <h1 className="text-lg md:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                FLAMEGUARD AI
+                COSMORA — Flame in Freefall
                 <span className="text-xs font-mono font-normal text-slate-400 border-l border-slate-700 pl-2 hidden sm:inline">
                   Spacecraft Combustion &amp; Flammability Telemetry Deck
                 </span>
@@ -234,7 +234,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#35D5E8]"></span>
-            <span>FLAMEGUARD AI // NASA SPACE APPS CHALLENGE 2026</span>
+            <span>COSMORA — FLAME IN FREEFALL // NASA SPACE APPS CHALLENGE 2026</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-slate-400">

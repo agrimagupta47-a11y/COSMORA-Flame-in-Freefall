@@ -20,7 +20,7 @@ import {
   Radio
 } from 'lucide-react';
 
-export default function HistoryAndSpinoffs() {
+export function HistoryAndSpinoffs() {
   const [selectedIncident, setSelectedIncident] = useState<HistoricalIncident>(incidents[0]);
   const [selectedSpinoff, setSelectedSpinoff] = useState<SpinoffItem>(spinoffs[0]);
 
@@ -300,3 +300,6 @@ export default function HistoryAndSpinoffs() {
     </div>
   );
 }
+
+export default HistoryAndSpinoffs;
+

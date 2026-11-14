@@ -95,7 +95,7 @@ const MISSION_SCENARIOS: MissionScenario[] = [
   }
 ];
 
-export default function MissionRanker() {
+export function MissionRanker() {
   const [selectedPreset, setSelectedPreset] = useState<MissionPreset>('lunar');
   const [activeExpModal, setActiveExpModal] = useState<Investigation | null>(null);
 
@@ -477,3 +477,5 @@ export default function MissionRanker() {
     </div>
   );
 }
+
+export default MissionRanker;

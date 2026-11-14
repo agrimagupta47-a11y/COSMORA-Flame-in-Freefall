@@ -29,7 +29,7 @@ interface AIComparisonResponse {
   lunarSafetyTakeaway: string;
 }
 
-export default function ExperimentMatrix() {
+export function ExperimentMatrix() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPillar, setSelectedPillar] = useState<string>('All');
   const [selectedFuel, setSelectedFuel] = useState<string>('All');
@@ -622,3 +622,6 @@ export default function ExperimentMatrix() {
     </div>
   );
 }
+
+export default ExperimentMatrix;
+
