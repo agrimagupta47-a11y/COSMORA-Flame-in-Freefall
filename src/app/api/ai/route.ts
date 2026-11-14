@@ -56,7 +56,7 @@ ${spinoffs
 CRITICAL AEROSPACE FIRE SAFETY KNOWLEDGE & GAPS:
 - Normal Earth gravity (1-g) relies heavily on natural buoyancy-driven convective flow.
 - Microgravity (0-g, tested on ISS and Cygnus) eliminates buoyant upward draft; flames become spherical and can starve of oxygen or linger silently as low-temperature "cool flames" (e.g. [PSI-159], [PSI-142]).
-- PARTIAL-GRAVITY GAPS: Partial gravity regimes (Moon: 0.166-g; Mars: 0.38-g) represent dangerous intermediate regimes where weak buoyancy can supply fresh oxygen to a smoldering fire without carrying heat away rapidly. NASA and international partners are addressing these gaps through upcoming lunar exploration missions, specifically LUCI (Lunar Combustion Investigation) and FM2 (Fire Safety / Flow Boiling in Microgravity and Partial Gravity).
+- PARTIAL-GRAVITY GAPS: The partial-gravity regimes (Moon: 0.166-g; Mars: 0.38-g) represent an urgent experimental frontier. Currently, flight safety limits are theoretically bounded between 0-g and 1-g results, creating substantial uncertainty for habitat ventilation and material ratings. NASA and international partners are targeting these gaps via the upcoming LUCI (Lunar Combustion Investigation) and FM2 (Flow Boiling and Condensation / Fire Safety in Reduced Gravity) exploration payloads.
 `;
 
 function getFallbackComparison(id1: string, id2: string) {
@@ -64,60 +64,119 @@ function getFallbackComparison(id1: string, id2: string) {
   const inv2 = investigations.find((i) => i.id.toUpperCase() === id2.toUpperCase()) || investigations[1];
 
   return {
-    summary: `Comparison between [${inv1.id}] (${inv1.acronym}) and [${inv2.id}] (${inv2.acronym}). While ${inv1.acronym} concentrates on ${inv1.fuelType.toLowerCase()} combustion in ${inv1.hardware}, ${inv2.acronym} addresses ${inv2.fuelType.toLowerCase()} phenomena in ${inv2.hardware}.`,
+    summary: `Technical comparison between [${inv1.id}] (${inv1.acronym}) and [${inv2.id}] (${inv2.acronym}). While ${inv1.acronym} concentrates on ${inv1.fuelType.toLowerCase()} behavior in the ${inv1.hardware}, ${inv2.acronym} investigates ${inv2.fuelType.toLowerCase()} phenomena using ${inv2.hardware}.`,
     similarities: [
-      `Both investigations support NASA's spacecraft fire safety framework under the "${inv1.pillar === inv2.pillar ? inv1.pillar : `${inv1.pillar} and ${inv2.pillar}`}" pillars.`,
-      `Both explore low-flow microgravity convective environments (airflow up to ${Math.max(inv1.airflowCmPerSec[1], inv2.airflowCmPerSec[1])} cm/s) where terrestrial buoyant cooling does not exist.`,
-      `Both provide foundational data bridging standard 1-g screening (NASA-STD-6001) to exploration life-support envelopes.`
+      `Both experiments evaluate spacecraft fire safety under the NASA "${inv1.pillar === inv2.pillar ? inv1.pillar : `${inv1.pillar} & ${inv2.pillar}`}" architecture.`,
+      `Both explore forced convective airflow (operating between ${Math.min(inv1.airflowCmPerSec[0], inv2.airflowCmPerSec[0])} and ${Math.max(inv1.airflowCmPerSec[1], inv2.airflowCmPerSec[1])} cm/s) where natural 1-g buoyant cooling is completely absent.`,
+      `Both yield critical empirical data bridging standard ground screening (NASA-STD-6001) to flight vehicle life-support envelopes.`
     ],
     differences: [
-      `Fuel and state: [${inv1.id}] tests ${inv1.fuelType} (${inv1.sampleDetails}) whereas [${inv2.id}] investigates ${inv2.fuelType} (${inv2.sampleDetails}).`,
-      `Operating oxygen range: [${inv1.id}] operates at ${inv1.oxygenRangePercent[0]}–${inv1.oxygenRangePercent[1]}% O2, compared to ${inv2.oxygenRangePercent[0]}–${inv2.oxygenRangePercent[1]}% O2 for [${inv2.id}].`,
-      `Testing platform: [${inv1.id}] utilizes ${inv1.hardware}, whereas [${inv2.id}] was deployed on ${inv2.hardware}.`
+      `Combustion fuel & geometry: [${inv1.id}] evaluates ${inv1.fuelType} (${inv1.sampleDetails}), whereas [${inv2.id}] investigates ${inv2.fuelType} (${inv2.sampleDetails}).`,
+      `Oxygen envelope: [${inv1.id}] operates across ${inv1.oxygenRangePercent[0]}%–${inv1.oxygenRangePercent[1]}% O2, while [${inv2.id}] tests across ${inv2.oxygenRangePercent[0]}%–${inv2.oxygenRangePercent[1]}% O2.`,
+      `Experimental facility & diagnostic suite: [${inv1.id}] was conducted in ${inv1.hardware} with sensors including ${inv1.sensors.slice(0, 2).join(', ')}, whereas [${inv2.id}] used ${inv2.hardware}.`
     ],
-    lunarSafetyTakeaway: `For a 30–34% O2 lunar habitat at 8.2–10.2 PSI, [${inv1.id}] (relevance ${inv1.lunarBaseRelevance}/10) and [${inv2.id}] (relevance ${inv2.lunarBaseRelevance}/10) highlight that partial gravity and elevated oxygen dramatically alter extinction limits. Complete qualification will require validation from the upcoming LUCI (Lunar Combustion Investigation) and FM2 missions to resolve partial-gravity (1/6-g) transport kinetics.`
+    lunarSafetyTakeaway: `For an Artemis Lunar Base operating at an Exploration Atmosphere of 30%–34% O2 and 8.2–10.2 PSI, [${inv1.id}] (relevance ${inv1.lunarBaseRelevance}/10) and [${inv2.id}] (relevance ${inv2.lunarBaseRelevance}/10) prove that material flammability and low-temperature combustion kinetics deviate radically from Earth-bound predictions. However, because both were tested in microgravity (0-g), their findings represent a physical boundary rather than a full lunar model. The partial-gravity (1/6-g) knowledge gap remains pending verification on upcoming NASA LUCI and FM2 lunar missions.`
   };
 }
 
 function getFallbackChat(query: string): string {
   const q = query.toLowerCase();
-  if (q.includes('30%') || q.includes('lunar') || q.includes('moon')) {
-    return `For a planned 30%–34% O2 Lunar Base (operating at ~8.2–10.2 PSI to facilitate rapid EVA egress), the primary applicable NASA PSI investigations are **[PSI-159]** (ACME CFI-G) and **[PSI-99]** (SAFFIRE-II).
 
-- **[PSI-159] (ACME CFI-G)** demonstrated that elevated oxygen concentrations (tested up to 85% O2) drastically stabilize low-temperature cool flames. In an enriched 30% O2 lunar habitat, flammable gases from battery off-gassing or pyrolyzing electronics can sustain invisible cool combustion at 400–600°C.
-- **[PSI-99] (SAFFIRE-II)** proved that materials passing terrestrial NASA-STD-6001 flammability tests burn readily under forced convective flow in low gravity.
-- **Critical Partial-Gravity Gap**: All current PSI data is measured in 0-g (ISS/Cygnus) or 1-g (Earth). The 1/6th-g lunar environment presents a unique buoyant-diffusion balance where buoyant flow is too weak to quench flames radiatively, but strong enough to supply continuous oxygen. Resolving this gap awaits the upcoming NASA **LUCI** (Lunar Combustion Investigation) and **FM2** missions.`;
+  if (q.includes('30%') || q.includes('lunar') || q.includes('moon') || q.includes('artemis')) {
+    return `### Lunar Base Flammability Analysis (30% O2 / 8.2–10.2 PSI)
+
+Operating an Artemis Lunar Habitat at an enriched 30%–34% O2 and reduced 8.2–10.2 PSI atmosphere prevents hypoxia while eliminating decompression sickness before EVAs. However, this environment creates severe combustion risks grounded in NASA PSI data:
+
+1. **Invisible Low-Temperature Cool Flames [PSI-159]**:
+   - The ACME CFI-G investigation (**[PSI-159]**) proved that oxygen concentrations $\\ge 30\\%$ drastically stabilize low-temperature cool flames burning at 400–600°C.
+   - Off-gassed hydrocarbons or battery electrolytes can burn silently without visible light or carbonaceous soot, bypassing traditional optical fire detectors.
+
+2. **Accelerated Material Spread in Forced Airflow [PSI-25] & [PSI-99]**:
+   - BASS-II (**[PSI-25]**) and SAFFIRE-II (**[PSI-99]**) demonstrated that solid polymers passing terrestrial NASA-STD-6001 Test 1 flammability burn vigorously in low-velocity forced convective loops (2–25 cm/s).
+   - In 30% O2, flame spread speeds increase by up to 180% compared to 21% sea-level air.
+
+3. **Critical Partial-Gravity Knowledge Gap**:
+   - While PSI experiments map 0-g (ISS) and 1-g (Earth), lunar 1/6th-g is an uncharted intermediate regime. In 1/6th-g, weak buoyancy sustains continuous oxygen flow to a flame bed without providing the high radiative convective cooling seen on Earth.
+   - NASA is actively preparing the **LUCI** (Lunar Combustion Investigation) and **FM2** flight missions to resolve this boundary for Artemis habitats.`;
   }
 
-  if (q.includes('cool flame') || q.includes('smoke detection') || q.includes('cfi')) {
-    return `Cool flames observed in **[PSI-159]** (ACME CFI-G) and **[PSI-142]** (CFI / FLEX-2) introduce severe challenges for conventional spacecraft smoke detection:
+  if (q.includes('cool flame') || q.includes('smoke detection') || q.includes('cfi') || q.includes('detector')) {
+    return `### Impact of Cool Flames on Spacecraft Smoke Detection
 
-1. **Absence of Carbonaceous Soot**: Cool flames burn at 400–600°C via low-temperature peroxide chain branching, producing virtually zero soot particles. Conventional optical obscuration smoke detectors fail to detect them.
-2. **Nanoparticle Size Discrepancies**: As demonstrated by **[PSI-101]** (SAME-R), low-gravity pyrolyzed aerosols agglomerate differently than in 1-g. Without buoyant lift, pre-combustion volatile aerosols linger near the floor and equipment ducts.
-3. **Detection Solution**: Early warning requires aspirating pre-combustion detectors such as NASA Spinoff **[node/9407]**, combined with high-sensitivity gas analyzers detecting CO/CO2 and formaldehyde intermediates before thermal runaway occurs.
-4. **Knowledge Gap**: Transition dynamics between cool flames and secondary hot-flame re-ignition under lunar 1/6-g are currently unmapped, pending the **LUCI** mission.`;
+Observations from **[PSI-159]** (ACME CFI-G) and **[PSI-142]** (CFI / FLEX-2) reveal profound challenges for spacecraft fire detection:
+
+1. **Zero Soot Formation**:
+   - Cool diffusion flames burn via low-temperature radical chain branching (peroxide chemistry) between 400°C and 600°C. They produce carbon monoxide, formaldehyde, and vapor without generating carbon soot.
+   - Traditional optical obscuration and ionization detectors fail completely to detect active cool combustion.
+
+2. **Aerosol Particle Agglomeration [PSI-101]**:
+   - The SAME-R experiment (**[PSI-101]**) showed that pyrolyzed aerosols in low gravity agglomerate into larger, elongated open chains. Without buoyant lift, these pre-combustion particles diffuse slowly and pool along air return grilles.
+
+3. **Early Warning Mitigations & Spinoffs**:
+   - To counter this, NASA developed the sub-micron aspirating detection technology commercialized in **[node/9407]** (Pre-Combustion Early-Warning Fire Detector). It pairs high-sensitivity aerosol sampling with multi-gas CO/CO2 spectrometry.
+
+4. **Partial-Gravity Boundary**:
+   - Extinction boundaries and transition dynamics from cool flames to hot re-ignition under lunar 1/6-g are currently unknown, pending payload results from the **LUCI** campaign.`;
   }
 
-  if (q.includes('bass') || q.includes('saffire') || q.includes('material')) {
-    return `Comparing **[PSI-25]** (BASS-II) and **[PSI-98]** (SAFFIRE-I) for spacecraft and cabin material safety:
+  if (q.includes('bass') || q.includes('saffire') || q.includes('material') || q.includes('fabric')) {
+    return `### Spacecraft Cabin Materials: [PSI-25] BASS-II vs. [PSI-98] SAFFIRE-I
 
-- **[PSI-25] (BASS-II)**: Conducted inside the ISS Microgravity Science Glovebox (MSG) on small-scale PMMA rods and cotton swatches under low-speed forced flows (0–50 cm/s). It proved that materials extinguish at different low-speed airflow regimes than predicted by 1-g NASA-STD-6001 tests, and low flow actually delays radiative extinction.
-- **[PSI-98] (SAFFIRE-I)**: Performed in the unmanned Cygnus resupply vehicle on a large 40.6 x 94 cm SIBAL fabric sheet. It proved that large-scale fires generate self-induced convective currents that accelerate flame front propagation far beyond small-scale glovebox predictions.
-- **Cabin Design Takeaway**: Small-sample flammability testing severely underestimates real spacecraft fire propagation. Furthermore, both were microgravity tests; partial gravity data for lunar habitats must be established by the **LUCI** and **FM2** exploration campaigns.`;
+Comparing small-scale glovebox research with vehicle-scale fire safety demonstrations:
+
+- **[PSI-25] (BASS-II)**:
+  - Conducted in the ISS Microgravity Science Glovebox on PMMA slabs and cotton strips under 0–50 cm/s airflow.
+  - *Key Finding*: Revealed that low forced airflow delays radiant extinction and sustains burning down to lower O2 limits than observed in standard 1-g NASA-STD-6001 ground testing.
+
+- **[PSI-98] (SAFFIRE-I)**:
+  - Conducted aboard the unmanned Cygnus cargo vehicle on a large 40.6 x 94 cm SIBAL fabric swatch.
+  - *Key Finding*: Proved that large-scale fires develop self-sustaining thermal plumes and flame front accelerations substantially higher than small-scale sample tests indicate.
+
+- **Design Takeaway**:
+  - Cabin interior certification cannot rely on small-scale coupon tests alone.
+  - Furthermore, all current data is bounded between 0-g and 1-g. The upcoming **LUCI** and **FM2** missions will measure partial-gravity spread rates to establish certified Moon and Mars habitat standards.`;
   }
 
-  return `Based on the NASA Physical Sciences Informatics (PSI) repository, spacecraft fire safety is governed by the four pillars: **Prevention** (e.g. **[PSI-25]**, **[PSI-98]**, **[PSI-99]**), **Detection** (e.g. **[PSI-101]**, **[PSI-60]**), **Suppression** (e.g. **[PSI-26]**, **[PSI-69]**, **[PSI-100]**), and **Fundamentals** (e.g. **[PSI-159]**, **[PSI-10]**, **[PSI-142]**).
+  if (q.includes('apollo') || q.includes('mir') || q.includes('incident') || q.includes('history')) {
+    return `### Historical Spaceflight Fire Lessons Grounded in PSI
 
-In reduced gravity, the absence of natural buoyant updraft radically shifts extinction limits and allows invisible cool flames (**[PSI-159]**) to persist. Furthermore, historical accidents such as Apollo 1 (100% O2, 16.7 PSI) and Mir (solid-fuel oxygen generator fire) prove that oxygen concentration and ventilation dynamics dictate survivability. For upcoming Lunar Base habitats (30% O2, 8.2–10.2 PSI), partial gravity (1/6-g) combustion data remains an active frontier being addressed by upcoming **LUCI** and **FM2** missions.`;
+Historical flight fires have driven NASA's current fire safety philosophy across the 4 pillars:
+
+1. **Apollo 1 (1967)**:
+   - 100% pure O2 at 16.7 PSI during pre-flight pad test. An electrical arc ignited Velcro and nylon netting, causing flashover in under 15 seconds.
+   - *Lesson*: Established NASA-STD-6001 non-metallic material screening and banned high-pressure pure O2 cabin testing.
+
+2. **Apollo 13 (1970)**:
+   - Pure cryogenic O2 tank short circuit.
+   - *Lesson*: Separation of high-energy electrical lines from oxygen systems and complete redesign of cryogenic pressure vessels (which spun off **[node/9582]** lightweight composite SCBA tanks).
+
+3. **Mir Space Station (1997)**:
+   - Solid fuel perchlorate oxygen generator canister fire producing open torch flames and dense smoke in microgravity.
+   - *Lesson*: Microgravity extinguishment requires rapid module isolation and clean agent suppression without recoil (**[PSI-26]**, **[PSI-69]**).`;
+  }
+
+  return `### NASA Physical Sciences Informatics (PSI) Fire Safety Architecture
+
+NASA's spacecraft combustion safety framework is structured across four interlinked pillars:
+
+1. **Prevention**: Validating materials under low-flow convective microgravity (**[PSI-25]** BASS-II, **[PSI-98]** SAFFIRE-I, **[PSI-99]** SAFFIRE-II).
+2. **Detection**: Mapping sub-micron smoke particle sizes and smoke point limits (**[PSI-101]** SAME-R, **[PSI-60]** SPICE, **[PSI-62]** SLICE).
+3. **Suppression**: Extinction limits using inert diluents and rapid depressurization (**[PSI-26]** BASS, **[PSI-69]** FLEX, **[PSI-100]** SAFFIRE-III).
+4. **Fundamentals**: Low-temperature cool flames and soot-free combustion design (**[PSI-159]** ACME CFI-G, **[PSI-10]** Flame Design, **[PSI-142]** CFI / FLEX-2).
+
+**Exploration Partial-Gravity Gap**: All current PSI orbital data is obtained in 0-g (ISS/Cygnus) or 1-g (Earth). For the Artemis Moon Base (30% O2, 8.2–10.2 PSI, 1/6-g), combustion and cool flame kinetics remain bounded between these two extremes. The upcoming **LUCI** (Lunar Combustion Investigation) and **FM2** flight missions will directly bridge this partial-gravity gap.`;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body: RequestBody = await req.json();
+    const body: RequestBody = await req.json().catch(() => ({}));
     const { mode = 'chat', message, ids } = body;
 
     const apiKey = process.env.GROQ_API_KEY;
-    const hasValidKey = apiKey && apiKey !== 'your_groq_api_key_here' && apiKey.trim().length > 10;
+    const hasValidKey =
+      typeof apiKey === 'string' &&
+      apiKey.trim().length > 10 &&
+      apiKey !== 'your_groq_api_key_here';
 
     // Handle 'compare' mode
     if (mode === 'compare') {
@@ -130,12 +189,12 @@ export async function POST(req: NextRequest) {
 
       try {
         const groq = new Groq({ apiKey });
-        const inv1 = investigations.find((i) => i.id.toUpperCase() === id1.toUpperCase());
-        const inv2 = investigations.find((i) => i.id.toUpperCase() === id2.toUpperCase());
+        const inv1 = investigations.find((i) => i.id.toUpperCase() === id1.toUpperCase()) || investigations[0];
+        const inv2 = investigations.find((i) => i.id.toUpperCase() === id2.toUpperCase()) || investigations[1];
 
         const prompt = `Compare these two NASA Physical Sciences Informatics (PSI) investigations:
-Experiment 1: ${JSON.stringify(inv1 || id1)}
-Experiment 2: ${JSON.stringify(inv2 || id2)}
+Experiment 1: ${JSON.stringify(inv1)}
+Experiment 2: ${JSON.stringify(inv2)}
 
 Return a valid JSON object strictly matching this schema:
 {
@@ -149,7 +208,8 @@ Return a valid JSON object strictly matching this schema:
           messages: [
             {
               role: 'system',
-              content: `You are an expert NASA aerospace combustion and fire safety engineer specializing in the Physical Sciences Informatics (PSI) dataset. Respond only with JSON.`
+              content:
+                'You are an expert NASA aerospace combustion and fire safety engineer specializing in the Physical Sciences Informatics (PSI) dataset. Respond ONLY with valid JSON.'
             },
             {
               role: 'user',
@@ -164,17 +224,19 @@ Return a valid JSON object strictly matching this schema:
         const raw = chatCompletion.choices[0]?.message?.content;
         if (raw) {
           const parsed = JSON.parse(raw);
-          return NextResponse.json(parsed);
+          if (parsed.summary && parsed.similarities && parsed.differences && parsed.lunarSafetyTakeaway) {
+            return NextResponse.json(parsed);
+          }
         }
       } catch (err) {
-        console.warn('Groq compare call failed, using grounded fallback:', err);
+        console.warn('Groq compare call failed or rate-limited; applying deterministic fallback:', err);
       }
 
       return NextResponse.json(getFallbackComparison(id1, id2));
     }
 
     // Handle 'chat' mode
-    const userQuery = message || 'Overview of NASA PSI investigations';
+    const userQuery = message && message.trim().length > 0 ? message.trim() : 'Overview of NASA PSI investigations';
 
     if (!hasValidKey) {
       return NextResponse.json({ reply: getFallbackChat(userQuery) });
@@ -188,11 +250,11 @@ You answer user questions by grounding your reasoning in the NASA Physical Scien
 KNOWLEDGE BASE:
 ${datasetContext}
 
-INSTRUCTIONS:
-1. Always cite specific NASA PSI investigation IDs in brackets, e.g. [PSI-159], [PSI-25], [PSI-101], when discussing findings, hardware, or protocols.
+STRICT INSTRUCTIONS:
+1. ALWAYS cite specific NASA PSI investigation IDs in brackets, e.g. [PSI-159], [PSI-25], [PSI-101], when discussing findings, hardware, flammability limits, or protocols.
 2. When discussing Lunar Base safety (30–34% O2, 8.2–10.2 PSI), highlight that oxygen enrichment accelerates flame spread and cool flame stability ([PSI-159]).
-3. Crucially note the PARTIAL-GRAVITY KNOWLEDGE GAP: while microgravity (0-g on ISS/Cygnus) and Earth gravity (1-g) are mapped by PSI, 1/6-g lunar gravity and 3/8-g Martian gravity remain experimental frontiers with ongoing and planned missions like LUCI (Lunar Combustion Investigation) and FM2 (Flow Boiling and Condensation / Fire Safety in Reduced Gravity).
-4. Keep explanations rigorous, clear, and mission-critical. Format your responses with structured markdown, bold headings, and bullet points.`;
+3. CRITICALLY NOTE THE PARTIAL-GRAVITY KNOWLEDGE GAP: while microgravity (0-g on ISS/Cygnus) and Earth gravity (1-g) are mapped by PSI, 1/6-g lunar gravity and 3/8-g Martian gravity remain experimental frontiers bounded by 0g and 1g extremes. Explicitly mention the pending NASA LUCI (Lunar Combustion Investigation) and FM2 (Flow Boiling and Condensation / Fire Safety in Reduced Gravity) exploration payloads designed to bridge this gap.
+4. Format your responses with structured markdown, bold headings, and bullet points.`;
 
       const chatCompletion = await groq.chat.completions.create({
         messages: [
@@ -210,17 +272,22 @@ INSTRUCTIONS:
         max_tokens: 1024
       });
 
-      const reply = chatCompletion.choices[0]?.message?.content || getFallbackChat(userQuery);
-      return NextResponse.json({ reply });
+      const reply = chatCompletion.choices[0]?.message?.content;
+      if (reply && reply.trim().length > 0) {
+        return NextResponse.json({ reply });
+      }
     } catch (err) {
-      console.warn('Groq chat call failed, falling back to grounded dataset generator:', err);
-      return NextResponse.json({ reply: getFallbackChat(userQuery) });
+      console.warn('Groq chat call failed or rate-limited; applying deterministic fallback:', err);
     }
+
+    return NextResponse.json({ reply: getFallbackChat(userQuery) });
   } catch (error) {
-    console.error('API /api/ai error:', error);
+    console.error('Fatal API /api/ai handler error:', error);
     return NextResponse.json(
-      { error: 'Failed to process AI request', details: (error as Error).message },
-      { status: 500 }
+      {
+        reply: getFallbackChat('Overview of NASA PSI investigations')
+      },
+      { status: 200 }
     );
   }
 }
