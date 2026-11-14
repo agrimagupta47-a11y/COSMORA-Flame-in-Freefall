@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { getInvestigationById } from '@/data/psi_dataset';
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
   text: string;
@@ -46,7 +46,7 @@ Inquire about microgravity combustion kinetics, partial-gravity lunar/martian fl
   timestamp: 'SYSTEM NOMINAL'
 };
 
-export default function AskPsiCopilot() {
+export function AskPsiCopilot() {
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +61,8 @@ export default function AskPsiCopilot() {
 
   useEffect(() => {
     scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
   }, [messages, isLoading]);
 
   const handleClearChat = () => {
@@ -451,7 +453,7 @@ export default function AskPsiCopilot() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Form */}
+      {/* Input Form with Enter-to-send support */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -465,6 +467,12 @@ export default function AskPsiCopilot() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
             placeholder={
               role === 'engineer'
                 ? 'Query combustion stoichiometry, cool flame kinetics, lunar habitat ratings...'
@@ -487,3 +495,5 @@ export default function AskPsiCopilot() {
     </div>
   );
 }
+
+export default AskPsiCopilot;

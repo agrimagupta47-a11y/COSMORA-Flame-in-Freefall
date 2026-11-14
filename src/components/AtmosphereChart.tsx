@@ -29,11 +29,10 @@ import {
   Sliders,
   Cpu,
   Loader2,
-  Zap,
-  RotateCcw
+  Zap
 } from 'lucide-react';
 
-interface AtmosphereDataPoint {
+export interface AtmosphereDataPoint {
   id: string;
   name: string;
   category: 'habitat' | 'incident' | 'psi' | 'custom';
@@ -50,7 +49,7 @@ interface AtmosphereDataPoint {
   rawInvestigation?: Investigation;
 }
 
-interface BriefingResult {
+export interface BriefingResult {
   riskLevel: 'CRITICAL' | 'ELEVATED' | 'NOMINAL';
   ignitionRisk: string;
   suppressionStrategy: string;
@@ -58,12 +57,11 @@ interface BriefingResult {
   partialGravityCaveat: string;
 }
 
-export default function AtmosphereChart() {
+export function AtmosphereChart() {
   const [mounted, setMounted] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<AtmosphereDataPoint | null>(null);
 
   // Custom Habitat Simulator State
-  const [showSimulator, setShowSimulator] = useState(true);
   const [customO2, setCustomO2] = useState<number>(32.0);
   const [customPressure, setCustomPressure] = useState<number>(8.2);
 
@@ -233,14 +231,14 @@ export default function AtmosphereChart() {
 
   if (!mounted) {
     return (
-      <div className="w-full h-96 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 text-sm">
+      <div className="w-full h-[400px] bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 text-sm">
         Initializing NASA Exploration Atmosphere Matrix...
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-slate-950/95 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-2xl backdrop-blur-md space-y-6">
+    <div className="w-full bg-slate-950/95 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-2xl backdrop-blur-md space-y-5">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
@@ -293,42 +291,37 @@ export default function AtmosphereChart() {
           </span>
         </div>
 
-        {/* Preset Buttons */}
-        <div className="flex flex-wrap gap-2 text-xs">
+        {/* Quick Presets Requirement */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-[11px] font-mono text-slate-400 mr-1">Quick Presets:</span>
           <button
-            onClick={() => applyPreset(21.0, 14.7, 'Earth Sea Level')}
+            onClick={() => applyPreset(21.0, 14.7, 'Earth 21% O2')}
             className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-sky-500 text-slate-300 hover:text-white transition-all font-mono text-[11px]"
           >
-            Earth Sea Level (21% / 14.7 psi)
+            Earth 21% O2
           </button>
           <button
-            onClick={() => applyPreset(32.0, 8.2, 'Artemis Lunar Base')}
-            className="px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-800 hover:border-purple-500 text-purple-200 hover:text-white transition-all font-mono text-[11px]"
+            onClick={() => applyPreset(32.0, 8.2, 'Lunar Base 32% O2')}
+            className="px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-800 hover:border-purple-500 text-purple-200 hover:text-white transition-all font-mono text-[11px] font-bold"
           >
-            Artemis Lunar Base (32% / 8.2 psi)
+            Lunar Base 32% O2
           </button>
           <button
-            onClick={() => applyPreset(30.0, 10.2, 'Pressurized Rover')}
-            className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-purple-500 text-slate-300 hover:text-white transition-all font-mono text-[11px]"
-          >
-            Pressurized Rover (30% / 10.2 psi)
-          </button>
-          <button
-            onClick={() => applyPreset(100.0, 4.3, 'EVA Spacesuit')}
+            onClick={() => applyPreset(100.0, 4.3, 'Spacesuit 100% O2')}
             className="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800 hover:border-emerald-500 text-emerald-200 hover:text-white transition-all font-mono text-[11px]"
           >
-            EVA Spacesuit (100% / 4.3 psi)
+            Spacesuit 100% O2
           </button>
           <button
-            onClick={() => applyPreset(100.0, 16.7, 'Apollo 1 Pad Hazard')}
+            onClick={() => applyPreset(100.0, 16.7, 'Apollo 1 100% O2')}
             className="px-2.5 py-1 rounded-lg bg-red-950/60 border border-red-800 hover:border-red-500 text-red-200 hover:text-white transition-all font-mono text-[11px]"
           >
-            Apollo 1 Pad Hazard (100% / 16.7 psi)
+            Apollo 1 100% O2
           </button>
         </div>
 
         {/* Sliders */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           <div>
             <div className="flex justify-between text-xs text-slate-300 mb-1 font-mono">
               <span>Oxygen Concentration:</span>
@@ -371,9 +364,9 @@ export default function AtmosphereChart() {
         </div>
       </div>
 
-      {/* Recharts Scatter Matrix */}
-      <div className="h-[420px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      {/* Recharts Scatter Matrix with explicit height container */}
+      <div className="h-[400px] w-full min-h-[400px]">
+        <ResponsiveContainer width="100%" height={400}>
           <ScatterChart margin={{ top: 20, right: 30, bottom: 25, left: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
 
@@ -751,7 +744,7 @@ export default function AtmosphereChart() {
           <div className="py-3 px-4 rounded-xl bg-slate-900/40 border border-dashed border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
             <span className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-cyan-500" />
-              Click any point on the matrix or use the atmosphere dial above to generate an immediate AI Fire Safety &amp; Suppression Briefing.
+              Click any point on the matrix or click a quick preset above to generate an immediate AI Fire Safety &amp; Suppression Briefing.
             </span>
             <span className="font-mono text-slate-500 text-[11px]">
               GROUNDED IN 12 NASA PHYSICAL SCIENCES INFORMATICS DATASETS
@@ -762,3 +755,5 @@ export default function AtmosphereChart() {
     </div>
   );
 }
+
+export default AtmosphereChart;
