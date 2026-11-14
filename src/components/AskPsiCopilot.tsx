@@ -61,7 +61,7 @@ export function AskPsiCopilot() {
 
   useEffect(() => {
     scrollToBottom();
-    const timer = setTimeout(scrollToBottom, 100);
+    const timer = setTimeout(scrollToBottom, 80);
     return () => clearTimeout(timer);
   }, [messages, isLoading]);
 
@@ -175,16 +175,16 @@ export function AskPsiCopilot() {
       const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ');
       const cleanLine = isBullet ? trimmed.substring(2) : line;
 
-      // Highlight [PSI-XX], [node/XX], and [INC-XX] citations with cyan / amber pills
+      // Highlight [PSI-XX], [node/XX], and [INC-XX] citations
       const parts = cleanLine.split(/(\[PSI-\d+[A-Z0-9-]*\]|\[node\/\d+\]|\[INC-[A-Z0-9-]+\]|\*\*.*?\*\*)/g);
 
       const renderedParts = parts.map((part, pIdx) => {
-        // [PSI-XXX] badges
+        // [PSI-XXX] badges: styled as glowing cyan pills
         if (/^\[PSI-\d+[A-Z0-9-]*\]$/.test(part)) {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-cyan-950/90 text-cyan-300 border border-cyan-500/70 shadow-sm mx-1 hover:border-cyan-400 transition-colors cursor-default"
+              className="inline-flex items-center bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.5 rounded font-mono text-xs shadow-[0_0_8px_rgba(6,182,212,0.2)] mx-0.5"
               title="NASA Physical Sciences Informatics Citation"
             >
               {part}
@@ -197,7 +197,7 @@ export function AskPsiCopilot() {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-amber-950/90 text-amber-300 border border-amber-500/70 shadow-sm mx-1 hover:border-amber-400 transition-colors cursor-default"
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm mx-0.5 hover:border-amber-400 transition-colors cursor-default"
               title="NASA Spinoff Technology Citation"
             >
               {part}
@@ -210,7 +210,7 @@ export function AskPsiCopilot() {
           return (
             <span
               key={pIdx}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-red-950/90 text-red-300 border border-red-500/70 shadow-sm mx-1"
+              className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/40 shadow-sm mx-0.5"
             >
               {part}
             </span>
@@ -270,7 +270,7 @@ export function AskPsiCopilot() {
               onClick={() => setRole('engineer')}
               className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
                 role === 'engineer'
-                  ? 'bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold'
+                  ? 'bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
               title="Technical specifications, stoichiometry, sensor telemetry"
@@ -282,7 +282,7 @@ export function AskPsiCopilot() {
               onClick={() => setRole('student')}
               className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
                 role === 'student'
-                  ? 'bg-purple-950 text-purple-300 border border-purple-700 font-bold'
+                  ? 'bg-purple-950 text-purple-300 border border-purple-700 font-bold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
               title="Intuitive physical analogies, ScienceCast insights, clear concepts"
@@ -324,8 +324,8 @@ export function AskPsiCopilot() {
         </div>
       </div>
 
-      {/* Chat Messages Feed */}
-      <div className="p-4 space-y-4 max-h-[480px] min-h-[320px] overflow-y-auto font-sans text-xs sm:text-sm">
+      {/* Chat Messages Feed with clean fixed scroll height */}
+      <div className="p-4 space-y-4 max-h-[420px] overflow-y-auto font-sans text-xs sm:text-sm">
         {messages.map((msg) => {
           const citedIds = msg.sender === 'assistant' ? extractCitedPsiIds(msg.text) : [];
 
@@ -406,15 +406,15 @@ export function AskPsiCopilot() {
                             key={id}
                             onClick={() => handleSendMessage(`Provide a deep dive into [${id}] ${inv?.acronym || ''} findings, hardware, and safety limits.`)}
                             title={tooltip}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/80 hover:border-cyan-400 transition-all shadow-sm"
+                            className="inline-flex items-center gap-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 px-2 py-0.5 rounded font-mono text-xs shadow-[0_0_8px_rgba(6,182,212,0.15)] transition-all"
                           >
                             <span>{label}</span>
                             {inv && (
-                              <span className="text-[9px] text-cyan-400 font-normal bg-cyan-900/60 px-1 rounded">
+                              <span className="text-[9px] text-cyan-300/80 font-normal bg-cyan-950/80 px-1 rounded border border-cyan-700/50">
                                 {inv.hardware.split(' ')[0]}
                               </span>
                             )}
-                            <ExternalLink className="w-2.5 h-2.5 text-cyan-500" />
+                            <ExternalLink className="w-2.5 h-2.5 text-cyan-400" />
                           </button>
                         );
                       })}
